@@ -4,6 +4,7 @@ module ex1 where
 
 open import prelude hiding (not-is-involution)
 
+
 _&&'_ : Bool → Bool → Bool
 true &&' true = true
 true &&' false = false
@@ -167,7 +168,7 @@ eq zero = λ z → z
 eq (suc n) = k n (refl _)
 
 _ : 1 ≡ 1
-_ = eq 1 (refl _)
+_ = eq 3 (refl _) (refl _) (refl _)
 
 {-
 h : {A : Type} {x l r : A} (n : ℕ) → (x ≡ l) → Step A n l r → Step A (suc n) x r
@@ -194,5 +195,33 @@ Fold {A} {B} f zero = B
 Fold {A} {B} f (suc n) = (a : A) → Fold (f a) n
 -}
 
+
+
+add2 : ℕ → ℕ → ℕ
+add2 x y = ℕ-elim x (λ _ n → suc n) y
+
+_ : {A : Type } {B : A → Type} {C : (Σ x ꞉ A , B x) → Type}
+       → ((x : A) (y : B x) → C (x , y))
+       → (z : Σ x ꞉ A , B x) → C z
+_ = Σ-elim
+
+ws2-q4 : {X : Type} {P : X → X → Type}
+  → (Σ b ꞉ X , Π a ꞉ X , P a b)
+  → Π a ꞉ X , (Σ b ꞉ X , P a b)
+ws2-q4 (l , r) a = l , r a
+
+_↔_ : Type → Type → Type
+P ↔ Q = (P → Q) × (Q → P)
+
+ws2-q5i : {P : Type} → ¬(P × ¬ P)
+ws2-q5i (p , np) = np p
+
+ws2-q5ii : {P : Type} → ¬(P ↔ ¬ P)
+ws2-q5ii {P} (p→np , np→p) = p→np p p
+  where
+    np : ¬ P
+    np = λ p → p→np p p
+    p : P
+    p = np→p np
 
 
