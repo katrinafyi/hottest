@@ -6,6 +6,8 @@ open import prelude
 open import decidability
 open import sums
 
+import classical
+
 ¬¬_ : Type → Type
 ¬¬ A = ¬ (¬ A)
 
@@ -56,11 +58,8 @@ lem = {A : Type} → A ∔ ¬ A
 [vi] : {A B : Type} → (¬ A → ¬ B) → B → A
 [vi] x = λ x₁ → {!!}
 
-postulate
- 0-elim : 𝟘 → A
-
 [vi]-irref : ¬¬ ((¬ A → ¬ B) → B → A)
-[vi]-irref f = f λ g b → 0-elim (g (λ x → f λ _ _ → x) b)
+[vi]-irref f = f λ g b → 𝟘-elim (g (λ x → f λ _ _ → x) b)
 
 [vi]-dne : ({A B : Type} → (¬ A → ¬ B) → B → A) → (¬¬ A → ¬¬ B) → A → B
 [vi]-dne vi x = vi (vi x)
@@ -73,9 +72,16 @@ postulate
     → ¬ (Σ a ꞉ A , B a) → (a : A) → ¬ B a
 [viii] f a Ba = f (a , Ba)
 
-[ix] : {A : Type} {B : A → Type}
+absurd = 𝟘-elim 
+
+[ix] : classical.lem → 
+  {A : Type} {B : A → Type}
     → ¬ ((a : A) → B a) → (Σ a ꞉ A , ¬ B a)
-[ix] x = {!!} , {!!}
+[ix] lem {A} {B} f = h lem
+  where
+    h : A ∔ ¬ A →  Σ a ꞉ A , ¬ B a
+    h (inl x) = x , ∔-elim (λ _ → ¬ B x) {!!} id lem
+    h (inr x) = absurd (f λ a → absurd (x a))
 
 [ix]-dne :
     ({A : Type} {B : A → Type} → ¬ ((a : A) → B a) → (Σ a ꞉ A , ¬ B a))

@@ -1,5 +1,7 @@
 {-# OPTIONS --without-K #-}
 
+module classical where
+
 open import general-notation
 open import prelude
 open import sums
