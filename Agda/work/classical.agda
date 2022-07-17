@@ -7,8 +7,6 @@ open import prelude
 open import sums
 open import decidability
 
-open import Agda.Primitive
-
 ¬¬ : Type → Type
 ¬¬ x = (x → 𝟘) → 𝟘
 

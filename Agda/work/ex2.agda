@@ -3,13 +3,8 @@
 module ex2 where
 
 open import prelude
-open import decidability
-open import sums
 
-import classical
-
-¬¬_ : Type → Type
-¬¬ A = ¬ (¬ A)
+open import classical using (¬¬)
 
 ¬¬¬ : Type → Type
 ¬¬¬ A = ¬ (¬¬ A)
@@ -35,9 +30,6 @@ variable
 
 [iii] : {A B : Type} → ¬ (A ∔ B) → ¬ A × ¬ B
 [iii] x = (λ z → x (inl z)) , (λ z → x (inr z))
-
-h1 : ¬ (A × ¬ A)
-h1 (pr₃ , pr₄) = pr₄ pr₃
 
 lem : Type₁
 lem = {A : Type} → A ∔ ¬ A
@@ -72,16 +64,19 @@ lem = {A : Type} → A ∔ ¬ A
     → ¬ (Σ a ꞉ A , B a) → (a : A) → ¬ B a
 [viii] f a Ba = f (a , Ba)
 
-absurd = 𝟘-elim 
+absurd = 𝟘-elim
 
-[ix] : classical.lem → 
+[ix] : classical.lem2 →
   {A : Type} {B : A → Type}
     → ¬ ((a : A) → B a) → (Σ a ꞉ A , ¬ B a)
-[ix] lem {A} {B} f = h lem
+[ix] lem2 {A} {B} f = lem2 h1 h2
   where
-    h : A ∔ ¬ A →  Σ a ꞉ A , ¬ B a
-    h (inl x) = x , ∔-elim (λ _ → ¬ B x) {!!} id lem
-    h (inr x) = absurd (f λ a → absurd (x a))
+    dne = classical.h2 lem2
+
+    h1 : A →  Σ a ꞉ A , ¬ B a
+    h1 x = lem2 id (λ g → x , absurd (f λ a → dne ([viii] g a)))
+    h2 : ¬ A → Σ a ꞉ A , ¬ B a
+    h2 x = absurd (f λ a → absurd (x a))
 
 [ix]-dne :
     ({A : Type} {B : A → Type} → ¬ ((a : A) → B a) → (Σ a ꞉ A , ¬ B a))
