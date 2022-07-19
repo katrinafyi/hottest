@@ -3,6 +3,7 @@
 module ex2 where
 
 open import prelude
+open import decidability
 
 open import classical using (¬¬)
 
@@ -64,7 +65,7 @@ lem = {A : Type} → A ∔ ¬ A
     → ¬ (Σ a ꞉ A , B a) → (a : A) → ¬ B a
 [viii] f a Ba = f (a , Ba)
 
-absurd = 𝟘-elim
+absurd = 𝟘-nondep-elim
 
 [ix] : classical.lem2 →
   {A : Type} {B : A → Type}
@@ -97,3 +98,65 @@ tne f a = f (λ nA → nA a)
 
 ¬¬-kleisli : {A B : Type} → (A → ¬¬ B) → ¬¬ A → ¬¬ B
 ¬¬-kleisli f = tne ∘ ¬¬-functor f
+
+
+bool-as-type : Bool → Type
+bool-as-type true = 𝟙
+bool-as-type false = 𝟘
+
+
+bool-≡-char₁ : ∀ (b b' : Bool) → b ≡ b' → (bool-as-type b ⇔ bool-as-type b')
+bool-≡-char₁ _ _ (refl x) = id , id
+
+true≢false : ¬ (true ≡ false)
+true≢false ()
+
+bool-≡-char₂ : ∀ (b b' : Bool) → (bool-as-type b ⇔ bool-as-type b') → b ≡ b'
+bool-≡-char₂ true true f = refl true
+bool-≡-char₂ true false f = absurd (pr₁ f ⋆)
+bool-≡-char₂ false true f = absurd (pr₂ f ⋆)
+bool-≡-char₂ false false f = refl false
+
+
+has-bool-dec-fct : Type → Type
+has-bool-dec-fct A = Σ f ꞉ (A → A → Bool) , (∀ x y → x ≡ y ⇔ (f x y) ≡ true)
+
+lr : ∀ {A} → has-decidable-equality A → has-bool-dec-fct A
+lr {A} f = dec , proof
+  where
+    dec' : {x y : A} → is-decidable (x ≡ y) → Bool
+    dec' (inl _) = true
+    dec' (inr _) = false
+
+    dec : A → A → Bool
+    dec x y = dec' (f x y)
+
+    f-true : {x y : A} → (p : is-decidable (x ≡ y)) → x ≡ y → dec' p ≡ true
+    f-true (inl x) _ = refl true
+    f-true (inr neq) p = absurd (neq p)
+
+    f-true' : {x y : A} → (p : is-decidable (x ≡ y)) → dec' p ≡ true → x ≡ y
+    f-true' (inl x) _ = x
+
+    proof : (x y : A) → x ≡ y ⇔ dec x y ≡ true
+    proof x y = f-true (f x y) , f-true' (f x y)
+
+neg-eq : {x y : Bool} → x ≡ y → ¬(x ≡ not y)
+neg-eq (refl true) = λ p → true≢false p
+neg-eq (refl false) = λ p → true≢false (sym p)
+
+rl : ∀ {A} → has-bool-dec-fct A → has-decidable-equality A
+rl {A} (f , proof) x y = decider (f x y) (refl _)
+  where
+    eq-f-true : (x ≡ y) → (f x y ≡ true)
+    eq-f-true = lr-implication (proof x y)
+
+    decider : (b : Bool) → f x y ≡ b → is-decidable (x ≡ y)
+    decider true p = inl (rl-implication (proof x y) p)
+    decider false p = inr (λ q → (neg-eq p) (eq-f-true q))
+
+decidable-equality-char : (A : Type) → has-decidable-equality A ⇔ has-bool-dec-fct A
+decidable-equality-char A = lr , rl
+
+
+
