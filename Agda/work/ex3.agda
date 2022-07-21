@@ -1,0 +1,204 @@
+{-# OPTIONS --without-K --allow-unsolved-metas #-}
+
+module ex3 where
+
+open import prelude hiding (_∼_)
+
+module _ {A : Type} {B : A → Type} where
+  _∼_ : ((x : A) → B x) → ((x : A) → B x) → Type
+  f ∼ g = ∀ x → f x ≡ g x
+
+  ∼-refl : (f : (x : A) → B x) → f ∼ f
+  ∼-refl f = λ x → refl (f x)
+
+  ∼-inv : (f g : (x : A) → B x) → (f ∼ g) → (g ∼ f)
+  ∼-inv f g H x = sym (H x)
+
+  ∼-concat : (f g h : (x : A) → B x) → f ∼ g → g ∼ h → f ∼ h
+  ∼-concat f g h H K x = trans (H x) (K x)
+
+  infix 0 _∼_
+
+record is-bijection {A B : Type} (f : A → B) : Type where
+ constructor
+  Inverse
+ field
+  inverse : B → A
+  η       : inverse ∘ f ∼ id
+  ε       : f ∘ inverse ∼ id
+
+record _≅_ (A B : Type) : Type where
+ constructor
+  Isomorphism
+ field
+  bijection   : A → B
+  bijectivity : is-bijection bijection
+
+infix 0 _≅_
+
+
+is-bijection' : {A B : Type} → (A → B) → Type
+is-bijection' {A} {B} f = Σ inv ꞉ (B → A) , (inv ∘ f ∼ id) × (f ∘ inv ∼ id)
+
+_≅'_ : Type → Type → Type
+A ≅' B = Σ f ꞉ (A → B) , is-bijection' f
+
+data 𝟚 : Type where
+ 𝟎 𝟏 : 𝟚
+
+Bool-𝟚-isomorphism : Bool ≅ 𝟚
+Bool-𝟚-isomorphism = record { bijection = f ; bijectivity = f-is-bijection }
+ where
+  f : Bool → 𝟚
+  f false = 𝟎
+  f true  = 𝟏
+
+  g : 𝟚 → Bool
+  g 𝟎 = false
+  g 𝟏 = true
+
+  gf : g ∘ f ∼ id
+  gf true  = refl true
+  gf false = refl false
+
+  fg : f ∘ g ∼ id
+  fg 𝟎 = refl 𝟎
+  fg 𝟏 = refl 𝟏
+
+  f-is-bijection : is-bijection f
+  f-is-bijection = record { inverse = g ; η = gf ; ε = fg }
+
+
+data Fin : ℕ → Type where
+ zero : {n : ℕ} → Fin (suc n)
+ suc  : {n : ℕ} → Fin n → Fin (suc n)
+
+
+Fin-elim : (A : {n : ℕ} → Fin n → Type)
+         → ({n : ℕ} → A {suc n} zero)
+         → ({n : ℕ} (k : Fin n) → A k → A (suc k))
+         → {n : ℕ} (k : Fin n) → A k
+Fin-elim A a f = h
+ where
+  h : {n : ℕ} (k : Fin n) → A k
+  h zero    = a
+  h (suc k) = f k (h k)
+
+
+Fin' : ℕ → Type
+Fin' 0       = 𝟘
+Fin' (suc n) = 𝟙 ∔ Fin' n
+
+zero' : {n : ℕ} → Fin' (suc n)
+zero' = inl ⋆
+
+suc'  : {n : ℕ} → Fin' n → Fin' (suc n)
+suc' = inr
+
+
+Fin-isomorphism : (n : ℕ) → Fin n ≅ Fin' n
+Fin-isomorphism n = record { bijection = f n ; bijectivity = f-is-bijection n }
+ where
+  f : (n : ℕ) → Fin n → Fin' n
+  f (suc n) zero    = inl ⋆
+  f (suc n) (suc k) = inr (f n k)
+
+  g : (n : ℕ) → Fin' n → Fin n
+  g (suc n) (inl ⋆) = zero
+  g (suc n) (inr k) = suc (g n k)
+
+  gf : (n : ℕ) → g n ∘ f n ∼ id
+  gf (suc n) zero    = refl zero
+  gf (suc n) (suc k) = γ
+   where
+    IH : g n (f n k) ≡ k
+    IH = gf n k
+
+    γ = g (suc n) (f (suc n) (suc k)) ≡⟨ refl (suc (g n (f n k))) ⟩
+        g (suc n) (suc' (f n k))      ≡⟨ refl (suc (g n (f n k))) ⟩
+        suc (g n (f n k))             ≡⟨ ap suc IH ⟩
+        suc k                         ∎
+
+  fg : (n : ℕ) → f n ∘ g n ∼ id
+  fg (suc n) (inl ⋆) = refl (inl ⋆)
+  fg (suc n) (inr k) = γ
+   where
+    IH : f n (g n k) ≡ k
+    IH = fg n k
+
+    γ = f (suc n) (g (suc n) (suc' k)) ≡⟨ refl (inr (f n (g n k))) ⟩
+        f (suc n) (suc (g n k))        ≡⟨ refl (inr (f n (g n k))) ⟩
+        suc' (f n (g n k))             ≡⟨ ap suc' IH ⟩
+        suc' k                         ∎
+
+  f-is-bijection : (n : ℕ) → is-bijection (f n)
+  f-is-bijection n = record { inverse = g n ; η = gf n ; ε = fg n}
+
+
+_≤₁_ : ℕ → ℕ → Type
+0     ≤₁ y     = 𝟙
+suc x ≤₁ 0     = 𝟘
+suc x ≤₁ suc y = x ≤₁ y
+
+is-lower-bound : (P : ℕ → Type) (n : ℕ) → Type
+is-lower-bound P n = (m : ℕ) → P m → n ≤₁ m
+
+minimal-element : (P : ℕ → Type) → Type
+minimal-element P = Σ n ꞉ ℕ , (P n) × (is-lower-bound P n)
+
+leq-zero : (n : ℕ) → 0 ≤₁ n
+leq-zero n = ⋆
+
+
+open import decidability
+  using (is-decidable; is-decidable-predicate)
+
+Well-ordering-principle = (P : ℕ → Type) → (d : is-decidable-predicate P) → (n : ℕ) → P n → minimal-element P
+
+
+-- given a decidable predicate which holds for some number "suc m", and
+-- m is a lower bound for the predicate P (suc x), i.e. the predicate
+-- on non-zero naturals, and
+-- the predicate does not hold at zero, then
+-- "suc m" is a lower bound for all of P.
+is-minimal-element-suc :
+  (P : ℕ → Type) (d : is-decidable-predicate P)
+  (m : ℕ) (pm : P (suc m))
+  (is-lower-bound-m : is-lower-bound (λ x → P (suc x)) m) →
+  ¬ (P 0) → is-lower-bound P (suc m)
+is-minimal-element-suc P d _ pm is-lower-bound-m neg-p0 0 p0 = neg-p0 p0
+is-minimal-element-suc P d 0 pm is-lower-bound-m neg-p0 (suc n) psuccn = ⋆
+is-minimal-element-suc P d (suc m) pm is-lower-bound-m neg-p0 (suc n) psuccn = is-lower-bound-m n psuccn
+
+
+well-ordering-principle-suc :
+  (P : ℕ → Type) (d : is-decidable-predicate P)
+  (n : ℕ) (p : P (suc n)) →
+  is-decidable (P 0) →
+  minimal-element (λ m → P (suc m)) → minimal-element P
+well-ordering-principle-suc P d n p (inl p0) _  = zero , p0 , (λ x x₁ → ⋆)
+well-ordering-principle-suc P d n p (inr neg-p0) (m , (pm , is-min-m)) =
+  suc m , (pm , is-minimal-element-suc P d m pm is-min-m neg-p0)
+
+well-ordering-principle : (P : ℕ → Type) → (d : is-decidable-predicate P) → (n : ℕ) → P n → minimal-element P
+well-ordering-principle P d 0 p = zero , p , (λ x x₁ → ⋆)
+well-ordering-principle P d (suc n) p = well-ordering-principle-suc P d n p (d 0)
+  (well-ordering-principle (λ z → P (suc z)) (λ x → d (suc x)) n p)
+
+
+is-zero-well-ordering-principle-suc :
+  (P : ℕ → Type) (d : is-decidable-predicate P)
+  (n : ℕ) (p : P (suc n)) (d0 : is-decidable (P 0)) →
+  (x : minimal-element (λ m → P (suc m))) (p0 : P 0) →
+  (pr₁ (well-ordering-principle-suc P d n p d0 x)) ≡ 0
+is-zero-well-ordering-principle-suc P d n p (inl p0) x q0 = refl zero
+is-zero-well-ordering-principle-suc P d n p (inr np0) x q0 = 𝟘-nondep-elim (np0 q0)
+
+
+is-zero-well-ordering-principle :
+  (P : ℕ → Type) (d : is-decidable-predicate P) →
+  (n : ℕ) → (pn : P n) →
+  P 0 →
+  pr₁ (well-ordering-principle P d n pn) ≡ 0
+is-zero-well-ordering-principle P d 0 p p0 = refl 0
+is-zero-well-ordering-principle P d (suc m) pm = is-zero-well-ordering-principle-suc P d m pm (d 0) (well-ordering-principle (λ z → P (suc z)) (λ x → d (suc x)) m pm)
