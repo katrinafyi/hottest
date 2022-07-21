@@ -287,6 +287,8 @@ infix 0 _≡_
               → (x y : X) → x ≡ y → A x y
 ≡-nondep-elim A = ≡-elim (λ x y _ → A x y)
 
+-- We finished lecture 2 here. So we'll start lecture 3 here.
+
 trans : {A : Type} {x y z : A} → x ≡ y → y ≡ z → x ≡ z
 trans p (refl y) = p
 
@@ -328,8 +330,11 @@ suc x * y = x * y + y
 
 infixr 30 _*_
 
+_divides_ : ℕ → ℕ → Type
+x divides y = Σ z ꞉ ℕ , x * z ≡ y
+
 is-prime : ℕ → Type
-is-prime p = (p ≥ 2) × ((x y : ℕ) → x * y ≡ p → (x ≡ 1) ∔ (x ≡ p))
+is-prime p = (p ≥ 2) × ((n : ℕ) → n divides p → (n ≡ 1) ∔ (n ≡ p))
 
 
 twin-prime-conjecture : Type
@@ -340,7 +345,3 @@ twin-prime-conjecture = (n : ℕ) → Σ p ꞉ ℕ , (p ≥ n)
 there-are-infinitely-many-primes : Type
 there-are-infinitely-many-primes = (n : ℕ) → Σ p ꞉ ℕ , (p ≥ n) × is-prime p
 ```
-
-(x , p) ≡ (y , refl)
-
-p : x ≡ y
