@@ -229,22 +229,16 @@ p (suc n) (suc m) = q (p n m)
 
 g : ∀ n → is-exhaustively-searchable (Fin n)
 g zero A x = inr λ y → fz (pr₁ y)
-g (suc n) A d = h (g n) (λ x → d (suc x))
+g (suc n) A d = l (d zero) (g n (λ z → A (suc z)) (λ x → d (suc x)))
   where
-  h : is-exhaustively-searchable (Fin n) → is-decidable-predicate (λ n → A (suc n)) → is-decidable (Σ x ꞉ Fin (suc n) , A x)
-  h x e = j (x (λ z → A (suc z)) e)
+  l : is-decidable (A zero) → is-decidable (Σ z ꞉ Fin n , A (suc z)) → is-decidable (Σ x ꞉ Fin (suc n) , A x)
+  l (inl x) neg = inl (zero , x)
+  l (inr x) (inl (pr₃ , pr₄)) = inl (suc pr₃ , pr₄)
+  l (inr x) (inr x₁) = inr destroy
     where
-    l : is-decidable (A zero) → ¬ (Σ z ꞉ Fin n , A (suc z)) → is-decidable (Σ x ꞉ Fin (suc n) , A x)
-    l (inl x) neg = inl (zero , x)
-    l (inr x) neg = inr λ y → destroy x neg y
-      where
-      destroy : ¬ A zero → ¬ (Σ z ꞉ Fin n , A (suc z)) → ¬ (Σ z ꞉ Fin (suc n) , A z)
-      destroy z s (zero , pr₄) = z pr₄
-      destroy z s (suc pr₃ , pr₄) = s (pr₃ , pr₄)
-
-    j : (Σ z ꞉ Fin n , A (suc z)) ∔ ¬ (Σ z ꞉ Fin n , A (suc z)) → is-decidable (Sigma (Fin (suc n)) (λ x → A x))
-    j (inl (pr₃ , pr₄)) = inl (suc pr₃ , pr₄)
-    j (inr x) = l (d zero) x
+    destroy : ¬ (Σ z ꞉ Fin (suc n) , A z)
+    destroy (zero , pr₄) = x pr₄
+    destroy (suc pr₃ , pr₄) = x₁ (pr₃ , pr₄)
 
 
 div-is-decidable : (d n : ℕ) → is-decidable (d divides n)
