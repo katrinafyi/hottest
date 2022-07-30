@@ -3,6 +3,8 @@
 module ex3 where
 
 open import prelude hiding (_∼_)
+open import natural-numbers-functions
+open import decidability
 
 module _ {A : Type} {B : A → Type} where
   _∼_ : ((x : A) → B x) → ((x : A) → B x) → Type
@@ -135,11 +137,6 @@ Fin-isomorphism n = record { bijection = f n ; bijectivity = f-is-bijection n }
   f-is-bijection n = record { inverse = g n ; η = gf n ; ε = fg n}
 
 
-_≤₁_ : ℕ → ℕ → Type
-0     ≤₁ y     = 𝟙
-suc x ≤₁ 0     = 𝟘
-suc x ≤₁ suc y = x ≤₁ y
-
 is-lower-bound : (P : ℕ → Type) (n : ℕ) → Type
 is-lower-bound P n = (m : ℕ) → P m → n ≤₁ m
 
@@ -202,3 +199,63 @@ is-zero-well-ordering-principle :
   pr₁ (well-ordering-principle P d n pn) ≡ 0
 is-zero-well-ordering-principle P d 0 p p0 = refl 0
 is-zero-well-ordering-principle P d (suc m) pm = is-zero-well-ordering-principle-suc P d m pm (d 0) (well-ordering-principle (λ z → P (suc z)) (λ x → d (suc x)) m pm)
+
+
+_divides_ : ℕ → ℕ → Type
+x divides y = Σ z ꞉ ℕ , x * z ≡ y
+
+zero-ne-suc : (n : ℕ) → ¬ (0 ≡ suc n)
+zero-ne-suc n = λ ()
+
+
+fz : Fin zero → 𝟘
+fz ()
+
+uncurry : {A B : Type} → {C : Type₁} → (A → B → C) → (A × B → C)
+uncurry f = λ z → f (pr₁ z) (pr₂ z)
+
+p : (x y : ℕ) → is-decidable (x ≡ y)
+p zero zero = inl (refl zero)
+p zero (suc m) = inr (λ ())
+p (suc n) zero = inr (λ ())
+p (suc n) (suc m) = q (p n m)
+  where
+  q : ∀ {n m : ℕ} → is-decidable (n ≡ m) → is-decidable (_≡_ {ℕ} (suc n) ( suc m))
+  q (inl x) = inl (ap suc x)
+  q (inr x) = inr λ x₁ → x (suc-is-injective x₁)
+
+
+
+
+g : ∀ n → is-exhaustively-searchable (Fin n)
+g zero A x = inr λ y → fz (pr₁ y)
+g (suc n) A d = h (g n) (λ x → d (suc x))
+  where
+  h : is-exhaustively-searchable (Fin n) → is-decidable-predicate (λ n → A (suc n)) → is-decidable (Σ x ꞉ Fin (suc n) , A x)
+  h x e = j (x (λ z → A (suc z)) e)
+    where
+    l : is-decidable (A zero) → ¬ (Σ z ꞉ Fin n , A (suc z)) → is-decidable (Σ x ꞉ Fin (suc n) , A x)
+    l (inl x) neg = inl (zero , x)
+    l (inr x) neg = inr λ y → destroy x neg y
+      where
+      destroy : ¬ A zero → ¬ (Σ z ꞉ Fin n , A (suc z)) → ¬ (Σ z ꞉ Fin (suc n) , A z)
+      destroy z s (zero , pr₄) = z pr₄
+      destroy z s (suc pr₃ , pr₄) = s (pr₃ , pr₄)
+
+    j : (Σ z ꞉ Fin n , A (suc z)) ∔ ¬ (Σ z ꞉ Fin n , A (suc z)) → is-decidable (Sigma (Fin (suc n)) (λ x → A x))
+    j (inl (pr₃ , pr₄)) = inl (suc pr₃ , pr₄)
+    j (inr x) = l (d zero) x
+
+
+div-is-decidable : (d n : ℕ) → is-decidable (d divides n)
+div-is-decidable d zero = inl (zero , *-base d)
+div-is-decidable zero (suc n) = inr λ x → zero-ne-suc n (pr₂ x)
+div-is-decidable (suc d) (suc n) = {!!}
+
+{-
+(d + 1) * z = n + 1
+
+d * z + z = n + 1
+
+dz + d + z = n
+-}
