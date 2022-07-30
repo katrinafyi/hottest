@@ -5,6 +5,7 @@ module ex3 where
 open import prelude hiding (_∼_)
 open import natural-numbers-functions
 open import decidability
+open import Fin
 
 module _ {A : Type} {B : A → Type} where
   _∼_ : ((x : A) → B x) → ((x : A) → B x) → Type
@@ -71,16 +72,12 @@ Bool-𝟚-isomorphism = record { bijection = f ; bijectivity = f-is-bijection }
   f-is-bijection = record { inverse = g ; η = gf ; ε = fg }
 
 
-data Fin : ℕ → Type where
- zero : {n : ℕ} → Fin (suc n)
- suc  : {n : ℕ} → Fin n → Fin (suc n)
 
-
-Fin-elim : (A : {n : ℕ} → Fin n → Type)
+Fin-elim' : (A : {n : ℕ} → Fin n → Type)
          → ({n : ℕ} → A {suc n} zero)
          → ({n : ℕ} (k : Fin n) → A k → A (suc k))
          → {n : ℕ} (k : Fin n) → A k
-Fin-elim A a f = h
+Fin-elim' A a f = h
  where
   h : {n : ℕ} (k : Fin n) → A k
   h zero    = a
@@ -224,6 +221,42 @@ p (suc n) (suc m) = q (p n m)
   q (inl x) = inl (ap suc x)
   q (inr x) = inr λ x₁ → x (suc-is-injective x₁)
 
+p2 : (x y : ℕ) → is-decidable (x ≤ y)
+p2 zero zero = inl 0-smallest
+p2 zero (suc m) = inl 0-smallest
+p2 (suc n) zero = inr (λ ())
+p2 (suc n) (suc m) = q (p2 n m)
+  where
+  o : suc n ≤ suc m → n ≤ m
+  o (suc-preserves-≤ s) = s
+
+  q : is-decidable (n ≤ m) → is-decidable (suc n ≤ suc m)
+  q (inl x) = inl (suc-preserves-≤ x)
+  q (inr x) = inr (λ x₁ → x (o x₁))
+
+
+fin-bound : ∀ n → (f : Fin n) → suc (ι f) ≤ n
+fin-bound (suc n) zero = suc-preserves-≤ 0-smallest
+fin-bound (suc n) (suc f) = suc-preserves-≤ (fin-bound n f)
+
+bb : ∀ n → Fin n ≅ (Σ m ꞉ ℕ , suc m ≤ n)
+bb n = Isomorphism ltr (Inverse rtl {!!} {!!})
+  where
+  ltr : {n : ℕ} → Fin n → (Σ m ꞉ ℕ , suc m ≤ n)
+  ltr zero = zero , suc-preserves-≤ 0-smallest
+  ltr (suc m) = (suc (pr₁ (ltr m))) , suc-preserves-≤ (pr₂ (ltr m))
+
+  rtl : {n : ℕ} → (Σ m ꞉ ℕ , suc m ≤ n) → Fin n
+  rtl (zero , suc-preserves-≤ 0-smallest) = zero
+  rtl (suc l , suc-preserves-≤ r) = suc (rtl (l , r))
+
+  rtl-of-ltr : ∀ {n} → (rtl {n} ∘ ltr {n}) ∼ id
+  rtl-of-ltr zero = refl zero
+  rtl-of-ltr (suc x) = {!!}
+
+  ltr-of-rtl : ∀ {n} → (ltr {n} ∘ rtl {n}) ∼ id
+  ltr-of-rtl (zero , suc-preserves-≤ 0-smallest) = refl (zero , suc-preserves-≤ 0-smallest)
+  ltr-of-rtl (suc pr₃ , suc-preserves-≤ a) = {!!}
 
 
 
@@ -240,6 +273,17 @@ g (suc n) A d = l (d zero) (g n (λ z → A (suc z)) (λ x → d (suc x)))
     destroy (zero , pr₄) = x pr₄
     destroy (suc pr₃ , pr₄) = x₁ (pr₃ , pr₄)
 
+g2 : ∀ n → is-exhaustively-searchable (Σ m ꞉ ℕ , m ≤ n)
+g2 zero A x = e (x (zero , 0-smallest))
+  where
+  t : (w : Σ m ꞉ ℕ , (m ≤ zero)) → A w → A (zero , 0-smallest)
+  t (zero , 0-smallest) x = x
+
+  e : is-decidable (A (zero , 0-smallest)) → is-decidable (Σ w ꞉ (Σ m ꞉ ℕ , m ≤ zero) , A w)
+  e (inl x) = inl ((zero , 0-smallest) , x)
+  e (inr x) = inr (λ x₂ → x (t (pr₁ x₂) (pr₂ x₂)))
+
+g2 (suc n) A x = {!!}
 
 div-is-decidable : (d n : ℕ) → is-decidable (d divides n)
 div-is-decidable d zero = inl (zero , *-base d)
