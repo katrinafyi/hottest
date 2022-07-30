@@ -2,6 +2,7 @@
 
 module ex3 where
 
+import new-prelude
 open import prelude hiding (_∼_)
 open import natural-numbers-functions
 open import decidability
@@ -240,7 +241,7 @@ fin-bound (suc n) zero = suc-preserves-≤ 0-smallest
 fin-bound (suc n) (suc f) = suc-preserves-≤ (fin-bound n f)
 
 bb : ∀ n → Fin n ≅ (Σ m ꞉ ℕ , suc m ≤ n)
-bb n = Isomorphism ltr (Inverse rtl {!!} {!!})
+bb n = Isomorphism ltr (Inverse rtl rtl-of-ltr ltr-of-rtl)
   where
   ltr : {n : ℕ} → Fin n → (Σ m ꞉ ℕ , suc m ≤ n)
   ltr zero = zero , suc-preserves-≤ 0-smallest
@@ -252,11 +253,11 @@ bb n = Isomorphism ltr (Inverse rtl {!!} {!!})
 
   rtl-of-ltr : ∀ {n} → (rtl {n} ∘ ltr {n}) ∼ id
   rtl-of-ltr zero = refl zero
-  rtl-of-ltr (suc x) = {!!}
+  rtl-of-ltr (suc x) = ap suc (rtl-of-ltr x)
 
   ltr-of-rtl : ∀ {n} → (ltr {n} ∘ rtl {n}) ∼ id
   ltr-of-rtl (zero , suc-preserves-≤ 0-smallest) = refl (zero , suc-preserves-≤ 0-smallest)
-  ltr-of-rtl (suc pr₃ , suc-preserves-≤ a) = {!!}
+  ltr-of-rtl (suc fn , suc-preserves-≤ le) = ap (λ { (m , le') → (suc m) , (suc-preserves-≤ le')}) (ltr-of-rtl (fn , le))
 
 
 
@@ -273,17 +274,12 @@ g (suc n) A d = l (d zero) (g n (λ z → A (suc z)) (λ x → d (suc x)))
     destroy (zero , pr₄) = x pr₄
     destroy (suc pr₃ , pr₄) = x₁ (pr₃ , pr₄)
 
+eq-of-iso : {A B : Type} → A ≅ B → ({!!}A B)
+eq-of-iso iso = {!!}
+
 g2 : ∀ n → is-exhaustively-searchable (Σ m ꞉ ℕ , m ≤ n)
-g2 zero A x = e (x (zero , 0-smallest))
-  where
-  t : (w : Σ m ꞉ ℕ , (m ≤ zero)) → A w → A (zero , 0-smallest)
-  t (zero , 0-smallest) x = x
+g2 n = new-prelude.transport {!!} {!!} (g n) {!!}
 
-  e : is-decidable (A (zero , 0-smallest)) → is-decidable (Σ w ꞉ (Σ m ꞉ ℕ , m ≤ zero) , A w)
-  e (inl x) = inl ((zero , 0-smallest) , x)
-  e (inr x) = inr (λ x₂ → x (t (pr₁ x₂) (pr₂ x₂)))
-
-g2 (suc n) A x = {!!}
 
 div-is-decidable : (d n : ℕ) → is-decidable (d divides n)
 div-is-decidable d zero = inl (zero , *-base d)
