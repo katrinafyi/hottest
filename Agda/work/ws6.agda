@@ -3,7 +3,7 @@ module ws6 where
 open import Agda.Primitive using (Level; lzero; lsuc; _⊔_) renaming (Set to Type) 
 
 open import prelude hiding (Type)
-import ws5
+open import ws5
 open import ex3 using (_≅_)
 
 is-contr : Type → Type
@@ -27,9 +27,6 @@ h2 a = (a , refl a) , c
   where
   c : (s : Σ (a ≡_)) → (a , refl a) ≡ s
   c (a' , refl .a') = refl (a' , refl a')
-
-const : {A B : Type} → A → B → A
-const x _ = x
 
 h3 : {A : Type} → is-contr A ⇔ ws5.is-equiv {A} (const ⋆)
 h3 {A} = l , r
@@ -72,7 +69,7 @@ h4 : {A : Type} → is-contr A → (Σ' a ꞉ A , singleton-ind a)
 h4 {A} (c , C) = c , ind
   where
   ind : (B : A → Type) → ws5.sec (ev-pt {A} {B} c)
-  ind B = sec , ff
+  ind B = g , ff
     where
     C' : (x : A) → c ≡ x
     C' x = sym (C c) ∙ C x
@@ -80,10 +77,10 @@ h4 {A} (c , C) = c , ind
     C'-refl : C' c ≡ refl c
     C'-refl = q (C c)
 
-    sec : B c → (x : A) → B x
-    sec Bc x = transport B (C' x) Bc
+    g : B c → (x : A) → B x
+    g Bc x = transport B (C' x) Bc
 
-    ff : (b : B c) → sec b c ≡ b
+    ff : (b : B c) → g b c ≡ b
     ff b = ap (λ H → transport B H b) C'-refl
 
 h4' : {A : Type} → (Σ' a ꞉ A , singleton-ind a) → is-contr A
@@ -97,36 +94,61 @@ refl-trans-l : {A : Type} {x y : A} (l : x ≡ y) → l ≡ refl x ∙ l
 refl-trans-l (refl _) = refl (refl _)
 
 module _ {A B : Type} (f : A → B) where
-  fib : (A → B) → B → Type
-  fib f b = Σ x ꞉ A , f x ≡ b
+  fib : B → Type
+  fib b = Σ x ꞉ A , f x ≡ b
 
   Sigma-eq : {a a' : A} {b : B}
     (p : a ≡ a') → (q : f a ≡ b)
     → transport (λ x → f x ≡ b) p q ≡ sym (ap f p) ∙ q
   Sigma-eq (refl _) (refl _) = refl (refl _)
 
-  cor1 : {b : B} (x x' : fib f b)
+  cor1 : {b : B} (x x' : fib b)
     → (x ≡ x') ≅ (Σ p ꞉ (pr₁ x ≡ pr₁ x') , pr₂ x ≡ ap f p ∙ pr₂ x')
   cor1 x x' = ex3.Isomorphism left (ex3.Inverse right rol lor)
     where
-    left : {b : B} {x x' : fib f b}
+    left : {b : B} {x x' : fib b}
       → (x ≡ x') → (Σ p ꞉ (pr₁ x ≡ pr₁ x') , pr₂ x ≡ ap f p ∙ pr₂ x')
     left (refl (pr₃ , pr₄)) = refl _ , refl-trans-l pr₄
 
-    right : {b : B} {x x' : fib f b}
+    right : {b : B} {x x' : fib b}
       → (Σ p ꞉ (pr₁ x ≡ pr₁ x') , pr₂ x ≡ ap f p ∙ pr₂ x') → (x ≡ x')
     right {b} {a , pf} {.a , pf'} (refl .a , eq) =
       ap (a ,_) (eq ∙ sym (refl-trans-l pf'))
 
-    lor : {b : B} {x x' : fib f b}
+    lor : {b : B} {x x' : fib b}
       → left {b} {x} {x'} ∘ right ∼ id
     lor {.(f a)} {a , _} {.a , refl _} (refl .a , refl _) = refl _
 
-    rol : {b : B} {x x' : fib f b}
+    rol : {b : B} {x x' : fib b}
       → right {b} {x} {x'} ∘ left {b} {x} {x'} ∼ id
     rol {.(f a)} {a , refl .(f a)} {_} (refl _) = refl _
 
-  is-contr-map : Type
-  is-contr-map = (b : B) → is-contr (fib f b)
+
+is-contr-map : {A B : Type} (f : A → B) → Set
+is-contr-map {A} {B} f = (b : B) → is-contr (fib f b)
+
+thm1 : {A B : Type} {f : A → B} → is-contr-map f → ws5.is-equiv f
+thm1 {A} {B} {f} contr-map = (g , G) , (g , G')
+  where
+  centres : (y : B) → fib f y
+  centres y = pr₁ (contr-map y)
+
+  g : B → A
+  g y = pr₁ (centres y)
+
+  G : f ∘ g ∼ id
+  G y = pr₂ (centres y)
+
+  p : ((f ∘ g) ∘ f) ∼ f
+  p = G ∙- f
+
+  G' : g ∘ f ∼ id
+  G' x = contr-x gfx
+    where
+    gfx : fib f (f x)
+    gfx = (g (f x) , p x)
+
+    contr-x : (l : fib f (f x)) → pr₁ l ≡ x
+    contr-x l = ap pr₁ (pr₁ (h0 (contr-map (f x)) l (x , refl _)))
 
   
