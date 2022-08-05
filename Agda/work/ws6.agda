@@ -4,6 +4,7 @@ open import Agda.Primitive using (Level; lzero; lsuc; _⊔_) renaming (Set to Ty
 
 open import prelude hiding (Type)
 import ws5
+open import ex3 using (_≅_)
 
 is-contr : Type → Type
 is-contr A = Σ c ꞉ A , ((x : A) → c ≡ x)
@@ -91,3 +92,41 @@ h4' {A} (a , ind) = a , xx
   xx : (x : A) → (a ≡ x)
   xx = pr₁ (ind (a ≡_)) (refl a)
 
+
+refl-trans-l : {A : Type} {x y : A} (l : x ≡ y) → l ≡ refl x ∙ l
+refl-trans-l (refl _) = refl (refl _)
+
+module _ {A B : Type} (f : A → B) where
+  fib : (A → B) → B → Type
+  fib f b = Σ x ꞉ A , f x ≡ b
+
+  Sigma-eq : {a a' : A} {b : B}
+    (p : a ≡ a') → (q : f a ≡ b)
+    → transport (λ x → f x ≡ b) p q ≡ sym (ap f p) ∙ q
+  Sigma-eq (refl _) (refl _) = refl (refl _)
+
+  cor1 : {b : B} (x x' : fib f b)
+    → (x ≡ x') ≅ (Σ p ꞉ (pr₁ x ≡ pr₁ x') , pr₂ x ≡ ap f p ∙ pr₂ x')
+  cor1 x x' = ex3.Isomorphism left (ex3.Inverse right rol lor)
+    where
+    left : {b : B} {x x' : fib f b}
+      → (x ≡ x') → (Σ p ꞉ (pr₁ x ≡ pr₁ x') , pr₂ x ≡ ap f p ∙ pr₂ x')
+    left (refl (pr₃ , pr₄)) = refl _ , refl-trans-l pr₄
+
+    right : {b : B} {x x' : fib f b}
+      → (Σ p ꞉ (pr₁ x ≡ pr₁ x') , pr₂ x ≡ ap f p ∙ pr₂ x') → (x ≡ x')
+    right {b} {a , pf} {.a , pf'} (refl .a , eq) =
+      ap (a ,_) (eq ∙ sym (refl-trans-l pf'))
+
+    lor : {b : B} {x x' : fib f b}
+      → left {b} {x} {x'} ∘ right ∼ id
+    lor {.(f a)} {a , _} {.a , refl _} (refl .a , refl _) = refl _
+
+    rol : {b : B} {x x' : fib f b}
+      → right {b} {x} {x'} ∘ left {b} {x} {x'} ∼ id
+    rol {.(f a)} {a , refl .(f a)} {_} (refl _) = refl _
+
+  is-contr-map : Type
+  is-contr-map = (b : B) → is-contr (fib f b)
+
+  
