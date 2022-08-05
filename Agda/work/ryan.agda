@@ -12,6 +12,12 @@ is-finite : Type → Type
 is-finite A = Σ n ꞉ ℕ , A ≅ Fin n
 
 -- the claim that "any subset of a finite set is subset".
+
+{- 
+ERRATA: this claim derives a contradiction by setting A = 1 and P = const N,
+the resulting Sigma type is obviously not finite.
+this can be fixed by ensuring "P a" is a proposition, e.g. by truncating it.
+-}
 fin-subset : Set1
 fin-subset = {A : Type} → {P : A → Type} → is-finite A → is-finite (Σ a ꞉ A , P a)
 
