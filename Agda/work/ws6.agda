@@ -12,6 +12,9 @@ is-contr A = Σ c ꞉ A , ((x : A) → c ≡ x)
 q : {A : Type} {x y : A} → (eq : x ≡ y) → sym eq ∙ eq ≡ refl y
 q (refl _) = refl (refl _)
 
+q' : {A : Type} {x y : A} → (eq : x ≡ y) → eq ∙ sym eq ≡ refl x
+q' (refl _) = refl (refl _)
+
 h0 : {A : Type} → is-contr A → (x y : A) → is-contr (x ≡ y)
 h0 {A} (pr₃ , contr) x y = (sym (contr x) ∙ contr y) , c
   where
@@ -151,4 +154,137 @@ thm1 {A} {B} {f} contr-map = (g , G) , (g , G')
     contr-x : (l : fib f (f x)) → pr₁ l ≡ x
     contr-x l = ap pr₁ (pr₁ (h0 (contr-map (f x)) l (x , refl _)))
 
-  
+record has-inv {A B : Set} (f : A → B) : Set where
+  constructor
+    Has-Inv
+  field
+    g : B → A
+    G : f ∘ g ∼ id
+    H : g ∘ f ∼ id
+
+record has-coh-inv {A B : Set} (f : A → B) : Set where
+  constructor
+    Has-Coh-Inv
+  field
+    g : B → A
+    G : f ∘ g ∼ id
+    H : g ∘ f ∼ id
+    K : G ∙- f ∼ f -∙ H
+
+is-contr-has-coh-inv : {A B : Set} {f : A → B}
+  → (has-coh-inv f) → is-contr-map f
+is-contr-has-coh-inv {A} {B} {f} record { g = g ; G = G ; H = H ; K = K } y = centre y , C y
+  where
+  centre : (y : B) → fib f y
+  centre y = (g y , G y)
+
+  C : (y : B) → (x : fib f y) → centre y ≡ x
+  C .(f x) (x , refl .(f x)) = equiv-to-eq (cor1 f (centre (f x)) (x , (refl _))) sig
+    where
+    equiv-to-eq : {A B : Type} → A ≅ B → B → A
+    equiv-to-eq (ex3.Isomorphism bijection (ex3.Inverse inverse η ε)) = inverse
+
+    --cor1 : {b : B} (x x' : fib b)
+    --→ (x ≡ x') ≅ (Σ p ꞉ (pr₁ x ≡ pr₁ x') , pr₂ x ≡ ap f p ∙ pr₂ x')
+    sig : Σ p ꞉ (g (f x) ≡ x) , (G (f x) ≡ ap f p ∙ refl (f x))
+    sig = H x , K x
+
+is-equiv-has-inverse : {A B : Set} {f : A → B}
+  → has-inverse f → is-equiv f
+is-equiv-has-inverse (pr₃ , pr₄) = (pr₃ , pr₁ pr₄) , (pr₃ , pr₂ pr₄)
+
+nat-htpy : {A B : Set} {f g : A → B} {x y : A} (H : f ∼ g) (p : x ≡ y)
+  → ap f p ∙ H y ≡ H x ∙ ap g p
+nat-htpy H (refl x) = sym (refl-trans-l (H x))
+
+ap-id : {A : Set} {x y : A} → (eq : x ≡ y) → ap id eq ≡ eq
+ap-id (refl _) = refl (refl _)
+
+ap-merge : {A B C : Set} {x y : A} {eq : x ≡ y}
+   (g : B → C) (f : A → B)
+  → ap g (ap f eq) ≡ ap (g ∘ f) eq
+ap-merge {A} {B} {C} {_} {_} {refl _} f g = refl (refl _)
+
+trans-assoc : {A : Type} {x y z w : A}
+  → (xy : x ≡ y) (yz : y ≡ z) (zw : z ≡ w)
+  → xy ∙ (yz ∙ zw) ≡ (xy ∙ yz) ∙ zw
+trans-assoc xy yz (refl _) = refl (trans xy yz)
+
+nat-htpy-case : {A : Set} {h : A → A} (H : h ∼ id)
+  → h -∙ H ∼ H ∙- h
+nat-htpy-case {A} {h} H x =
+    ap h (H x)
+  ≡⟨ ap (λ X → ap h (H x) ∙ X) (sym (q' (H x))) ⟩
+    ap h (H x) ∙ ((H x) ∙ sym (H x))
+  ≡⟨ trans-assoc _ (H x) (sym (H x)) ⟩
+    ap h (H x) ∙ (H x) ∙ sym (H x)
+  ≡⟨ ap (_∙ sym (H x)) (nat-htpy H (H x)) ⟩
+    H (h x) ∙ ap id (H x) ∙ sym (H x)
+  ≡⟨ ap (λ X → H (h x) ∙ X ∙ sym (H x)) (ap-id (H x)) ⟩
+    H (h x) ∙ H x ∙ sym (H x)
+  ≡⟨ sym (trans-assoc (H (h x)) (H x) (sym (H x))) ⟩
+    H (h x) ∙ (H x ∙ sym (H x))
+  ≡⟨ ap (H (h x) ∙_) (q' (H x)) ⟩
+    H (h x)
+  ∎
+
+has-coh-inv-has-inv : {A B : Set} → {f : A → B}
+  → has-inv f → has-coh-inv f
+has-coh-inv-has-inv {A} {B} {f} (Has-Inv g G H) = Has-Coh-Inv g G' H K
+  where
+  G' : f ∘ g ∼ id
+  G' y = sym (G (f (g y))) ∙ (ap f (H (g y)) ∙ G y)
+
+  K : G' ∙- f ∼ f -∙ H
+  K x = goal
+    where
+    -- replace top edge using special case.
+    top : ap f (H (g (f x))) ≡ ap (f ∘ (g ∘ f)) (H x)
+    top =
+        ap f (H (g (f x)))
+      ≡⟨ ap (ap f) (sym (nat-htpy-case H x)) ⟩
+        ap f (ap (g ∘ f) (H x))
+      ≡⟨ ap-merge f (g ∘ f) ⟩
+        ap (f ∘ (g ∘ f)) (H x)
+      ∎
+
+    -- second half of proof with ap fgf (H x) on top edge.
+    second : ap (f ∘ (g ∘ f)) (H x) ∙ (G ∙- f) x ≡ (G ∙- f) (g (f x)) ∙ ap f (H x)
+    second = nat-htpy (G ∙- f) (H x)
+
+    -- first half of proof (that is, the real goal) which is exactly
+    -- G' ∙- f ∼ f -∙ H with the left edge reversed.
+    first : ap f (H (g (f x))) ∙ (G ∙- f) x ≡ (G ∙- f) (g (f x)) ∙ ap f (H x)
+    first =
+      transport
+      (λ top → top ∙ (G ∙- f) x ≡ (G ∙- f) (g (f x)) ∙ ap f (H x))
+      (sym top) second
+
+    -- first but with added reverse path on left edge.
+    first' :
+      sym ((G ∙- f) (g (f x)))
+      ∙ (ap f (H (g (f x))) ∙ (G ∙- f) x)
+      ≡ sym ((G ∙- f) (g (f x)))
+      ∙ ((G ∙- f) (g (f x)) ∙ ap f (H x))
+    first' = ap (sym ((G ∙- f) (g (f x))) ∙_) first
+
+    -- cancellation of reverse path to get f -∙ H on RHS.
+    simp : sym ((G ∙- f) (g (f x))) ∙ ((G ∙- f) (g (f x)) ∙ ap f (H x)) ≡ ap f (H x)
+    simp =
+        sym ((G ∙- f) (g (f x))) ∙ ((G ∙- f) (g (f x)) ∙ ap f (H x))
+      ≡⟨ trans-assoc _ ((G ∙- f) (g (f x))) (ap f (H x)) ⟩
+        sym ((G ∙- f) (g (f x))) ∙ (G ∙- f) (g (f x)) ∙ ap f (H x)
+      ≡⟨ ap (_∙ ap f (H x)) (q ((G ∙- f) (g (f x)))) ⟩
+        refl _ ∙ ap f (H x)
+      ≡⟨ sym (refl-trans-l _) ⟩
+        ap f (H x)
+      ∎
+
+    goal : (G' ∙- f) x ≡ (f -∙ H) x
+    goal = first' ∙ simp
+
+
+not-contr-0 : ¬ is-contr 𝟘
+not-contr-0 (() , _)
+
+
