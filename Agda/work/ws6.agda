@@ -3,6 +3,7 @@ module ws6 where
 open import Agda.Primitive using (Level; lzero; lsuc; _⊔_) renaming (Set to Type) 
 
 open import prelude hiding (Type)
+open import new-prelude using (Path)
 open import ws5
 open import ex3 using (_≅_)
 
@@ -20,6 +21,9 @@ h0 {A} (pr₃ , contr) x y = (sym (contr x) ∙ contr y) , c
   where
   c : ∀ {x y : A} (x₁ : x ≡ y) → sym (contr x) ∙ contr y ≡ x₁
   c (refl x) = q (contr x)
+
+hx : {A : Type} → is-contr A → (x y : A) → (x ≡ y)
+hx (_ , contr) x y = sym (contr x) ∙ contr y
 
 
 h1 : is-contr 𝟙
@@ -286,5 +290,58 @@ has-coh-inv-has-inv {A} {B} {f} (Has-Inv g G H) = Has-Coh-Inv g G' H K
 
 not-contr-0 : ¬ is-contr 𝟘
 not-contr-0 (() , _)
+
+
+Eq-N : ℕ → ℕ → Type
+Eq-N 0 0 = 𝟙
+Eq-N (suc _) 0 = 𝟘
+Eq-N 0 (suc _) = 𝟘
+Eq-N (suc n) (suc m) = Eq-N n m
+ 
+not-contr-N : ¬ (is-contr ℕ)
+not-contr-N (pr₃ , contr) = x 1=0
+  where
+  x : 1 ≡ 0 → 𝟘
+  x ()
+
+  1=0 : 1 ≡ 0
+  1=0 = sym (contr 1) ∙ contr 0
+
+ws6-4 : {A : Type} {B : A → Type}
+  → is-equiv {Σ x ꞉ A , B x} {A} pr₁
+  ⇔ ((a : A) → is-contr (B a))
+ws6-4 {A} {B} = left , {!!}
+  where
+  left : is-equiv {Σ x ꞉ A , B x} {A} pr₁ → (a : A) → is-contr (B a)
+  left ((s , S) , (r , R)) a = transport B (S a) (pr₂ (s a)) , {!!}
+    where
+    c4 : is-contr-map {Σ x ꞉ A , B x} {A} pr₁ → (a : A) → is-contr (B a)
+    c4 contr-map a = b , λ x → f3 {b} {x}
+      where
+      b : B a
+      b = transport B (S a) (pr₂ (s a))
+
+      ff : {A : Type} {B : A → Type} {x y : Σ a ꞉ A , B a}
+        → x ≡ y → pr₁ x ≡ pr₁ y
+      ff (refl _) = refl _
+
+      ff' : {A : Type} {B : A → Type}
+        → (a : A) (b b' : B a) → (a , b) ≡ (a , b') [ (Σ a ꞉ A , B a) ] → b ≡ b'
+      ff' a b .b (new-prelude.refl .(a , b)) = refl b
+
+      f2 : {x y : Σ a ꞉ A , B a} → pr₁ x ≡ pr₁ y → x ≡ y
+      f2 {x} {.(pr₁ x) , pr₃} (refl .(pr₁ x)) =
+        ff (hx (contr-map (pr₁ x)) (x , refl _) (((pr₁ x) , pr₃) , refl _))
+
+      eq-conv : {A : Type} {x y : A} → x ≡ y → x ≡ y [ A ]
+      eq-conv (refl _) = new-prelude.refl _
+
+      f3 : {x y : B a} → x ≡ y
+      f3 {x} {y} = ff' a x y (eq-conv (f2 (refl a)))
+
+
+    contr : (x : B a) → transport B (S a) (pr₂ (s a)) ≡ x
+    contr b = {!!}
+    
 
 
